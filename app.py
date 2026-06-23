@@ -9,25 +9,8 @@ HEALTH_SCRIPT = "/home/anvi2026/capstone-project/health.sh"
 DISK_LOG_FILE = "/home/anvi2026/capstone-project/disk_warning_log.txt"
 
 
-def get_status_from_percentage(value):
-    """
-    Decide status based on percentage.
-    You can adjust thresholds later.
-    """
-    if value >= 90:
-        return "CRITICAL"
-    elif value >= 70:
-        return "WARNING"
-    else:
-        return "OK"
-
-
 def get_color_class(status):
-    """
-    Convert status into CSS class.
-    """
     status = status.upper()
-
     if "CRITICAL" in status:
         return "critical"
     elif "WARNING" in status:
@@ -37,9 +20,6 @@ def get_color_class(status):
 
 
 def parse_health_output():
-    """
-    Runs health.sh and converts the output into dashboard cards.
-    """
     cards = []
 
     try:
@@ -50,375 +30,208 @@ def parse_health_output():
             timeout=5
         )
 
-        output = result.stdout.strip()
-
-        if not output:
-            return [
-                {
-                    "name": "Health Script",
-                    "value": 0,
-                    "display": "No output from health.sh",
-                    "status": "WARNING",
-                    "class": "warning"
-                }
-            ]
-
-        lines = output.splitlines()
+        lines = result.stdout.strip().splitlines()
 
         for line in lines:
-            line = line.strip()
 
+            # ✅ Ignore header
+            if "SERVER HEALTH REPORT" in line.upper():
+                continue
+
+            line = line.strip()
             if not line:
                 continue
 
-            percentage_match = re.search(r"(\d+)%", line)
-
-            if percentage_match:
-                value = int(percentage_match.group(1))
-
-                if "CRITICAL" in line.upper():
-                    status = "CRITICAL"
-                elif "WARNING" in line.upper():
-                    status = "WARNING"
-                elif "OK" in line.upper():
-                    status = "OK"
-                else:
-                    status = get_status_from_percentage(value)
-
-                clean_name = line.split(":")[0] if ":" in line else line
-
-                cards.append(
-                    {
-                        "name": clean_name,
-                        "value": value,
-                        "display": line,
-                        "status": status,
-                        "class": get_color_class(status)
-                    }
-                )
+            # ✅ Status detection
+            if "CRITICAL" in line.upper():
+                status = "CRITICAL"
+            elif "WARNING" in line.upper():
+                status = "WARNING"
+            elif "OK" in line.upper():
+                status = "OK"
             else:
-                cards.append(
-                    {
-                        "name": "Info",
-                        "value": 0,
-                        "display": line,
-                        "status": "OK",
-                        "class": "ok"
-                    }
-                )
+                status = "INFO"
+
+            # ✅ Extract percentage if exists
+            match = re.search(r"(\d+)%", line)
+            value = int(match.group(1)) if match else None
+
+            name = line.split(":")[0] if ":" in line else "Info"
+
+            cards.append({
+                "name": name,
+                "value": value,
+                "display": line,
+                "status": status,
+                "class": get_color_class(status)
+            })
 
     except Exception as e:
-        cards.append(
-            {
-                "name": "Error",
-                "value": 0,
-                "display": f"Could not run health.sh: {e}",
-                "status": "CRITICAL",
-                "class": "critical"
-            }
-        )
+        cards.append({
+            "name": "Error",
+            "value": None,
+            "display": str(e),
+            "status": "CRITICAL",
+            "class": "critical"
+        })
 
     return cards
 
 
 def parse_disk_logs():
-    """
-    Reads disk_warning_log.txt and converts timestamped blocks into table rows.
-    """
     rows = []
-    current_timestamp = "Unknown time"
+    current_timestamp = "Unknown"
 
     if not os.path.exists(DISK_LOG_FILE):
-        return [
-            {
-                "timestamp": "No logs yet",
-                "message": "disk_warning_log.txt not found",
-                "status": "WARNING",
-                "class": "warning"
-            }
-        ]
+        return []
 
-    with open(DISK_LOG_FILE, "r") as file:
-        for line in file:
+    with open(DISK_LOG_FILE, "r") as f:
+        for line in f:
             line = line.strip()
-
             if not line:
                 continue
 
             if line.startswith("-"):
-                current_timestamp = line.strip("-").strip()
+                current_timestamp = line.strip("- ").strip()
             else:
                 if "CRITICAL" in line.upper():
                     status = "CRITICAL"
                 elif "WARNING" in line.upper():
                     status = "WARNING"
-                elif "OK" in line.upper():
-                    status = "OK"
                 else:
-                    status = "INFO"
+                    status = "OK"
 
-                rows.append(
-                    {
-                        "timestamp": current_timestamp,
-                        "message": line,
-                        "status": status,
-                        "class": get_color_class(status)
-                    }
-                )
-
-    if not rows:
-        rows.append(
-            {
-                "timestamp": "No log data",
-                "message": "No disk log entries available",
-                "status": "WARNING",
-                "class": "warning"
-            }
-        )
+                rows.append({
+                    "timestamp": current_timestamp,
+                    "message": line,
+                    "status": status,
+                    "class": get_color_class(status)
+                })
 
     return rows
 
 
-HTML_TEMPLATE = """
+HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>System Health Dashboard</title>
-    <meta http-equiv="refresh" content="15">
+<title>Dashboard</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: #e5e7eb;
-        }
+<!-- ✅ refresh every 5 minutes -->
+<meta http-equiv="refresh" content="15">
 
-        .container {
-            padding: 30px;
-        }
+<style>
+body {
+    font-family: Arial;
+    background:#0f172a;
+    color:white;
+    padding:20px;
+}
 
-        h1 {
-            margin-bottom: 5px;
-            color: #ffffff;
-        }
+/* ✅ SINGLE ROW CARDS */
+.cards {
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(220px, 1fr));
+    gap:20px;
+}
 
-        .subtitle {
-            color: #94a3b8;
-            margin-bottom: 30px;
-        }
+.card {
+    min-width:220px;
+    background:#1e293b;
+    padding:20px;
+    border-radius:10px;
+}
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
+.ok { color:#22c55e; }
+.warning { color:#f59e0b; }
+.critical { color:#ef4444; }
 
-        .card {
-            background: #1e293b;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-            border: 1px solid #334155;
-        }
+.bar-container {
+    background:#334155;
+    height:10px;
+    border-radius:10px;
+}
 
-        .card-title {
-            font-size: 16px;
-            color: #cbd5e1;
-            margin-bottom: 10px;
-        }
+.bar { height:10px; border-radius:10px; }
+.ok-bar { background:#22c55e; }
+.warning-bar { background:#f59e0b; }
+.critical-bar { background:#ef4444; }
 
-        .card-value {
-            font-size: 34px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
+table {
+    width:100%;
+    margin-top:30px;
+    border-collapse: collapse;
+}
 
-        .status {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 14px;
-        }
-
-        .bar-background {
-            width: 100%;
-            height: 12px;
-            background: #334155;
-            border-radius: 999px;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-
-        .bar {
-            height: 100%;
-            border-radius: 999px;
-        }
-
-        .ok-text {
-            color: #22c55e;
-        }
-
-        .warning-text {
-            color: #f59e0b;
-        }
-
-        .critical-text {
-            color: #ef4444;
-        }
-
-        .ok-bar {
-            background: #22c55e;
-        }
-
-        .warning-bar {
-            background: #f59e0b;
-        }
-
-        .critical-bar {
-            background: #ef4444;
-        }
-
-        .raw-line {
-            font-size: 13px;
-            color: #94a3b8;
-            word-break: break-word;
-        }
-
-        .section-title {
-            margin-top: 20px;
-            margin-bottom: 15px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #1e293b;
-            border-radius: 14px;
-            overflow: hidden;
-        }
-
-        th {
-            background: #334155;
-            color: #f8fafc;
-            text-align: left;
-            padding: 14px;
-        }
-
-        td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #334155;
-            color: #e5e7eb;
-        }
-
-        tr:hover {
-            background: #273449;
-        }
-
-        .badge {
-            padding: 5px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .badge.ok {
-            background: rgba(34,197,94,0.15);
-            color: #22c55e;
-        }
-
-        .badge.warning {
-            background: rgba(245,158,11,0.15);
-            color: #f59e0b;
-        }
-
-        .badge.critical {
-            background: rgba(239,68,68,0.15);
-            color: #ef4444;
-        }
-
-        .footer {
-            margin-top: 18px;
-            color: #64748b;
-            font-size: 13px;
-        }
-    </style>
+th,td {
+    padding:10px;
+    border-bottom:1px solid #334155;
+}
+</style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>System Health Dashboard</h1>
-        <div class="subtitle">
-            Auto-refreshes every 15 seconds | Data from health.sh and disk_warning_log.txt
-        </div>
 
-        <h2 class="section-title">Health Summary</h2>
+<h1>ABC Pharma System Health Dashboard</h1>
 
-        <div class="cards">
-            {% for card in cards %}
-            <div class="card">
-                <div class="card-title">{{ card.name }}</div>
+<div class="cards">
+{% for c in cards %}
+<div class="card">
 
-                {% if card.value > 0 %}
-                    <div class="card-value {{ card.class }}-text">{{ card.value }}%</div>
-                {% else %}
-                    <div class="card-value {{ card.class }}-text">INFO</div>
-                {% endif %}
+<h3>{{c.name}}</h3>
 
-                <div class="status {{ card.class }}-text">{{ card.status }}</div>
+<!-- ✅ FIX: no more -- -->
+<h1 class="{{c.class}}">
+{% if c.value %}
+    {{c.value}}%
+{% else %}
+    {{c.status}}
+{% endif %}
+</h1>
 
-                {% if card.value > 0 %}
-                <div class="bar-background">
-                    <div class="bar {{ card.class }}-bar" style="width: {{ card.value }}%;"></div>
-                </div>
-                {% endif %}
+<p class="{{c.class}}">{{c.status}}</p>
 
-                <div class="raw-line">{{ card.display }}</div>
-            </div>
-            {% endfor %}
-        </div>
+{% if c.value %}
+<div class="bar-container">
+    <div class="bar {{c.class}}-bar" style="width:{{c.value}}%"></div>
+</div>
+{% endif %}
 
-        <h2 class="section-title">Disk Warning Logs</h2>
+<p>{{c.display}}</p>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Disk Information</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
+</div>
+{% endfor %}
+</div>
 
-            <tbody>
-                {% for row in disk_rows %}
-                <tr>
-                    <td>{{ row.timestamp }}</td>
-                    <td>{{ row.message }}</td>
-                    <td>
-                        <span class="badge {{ row.class }}">{{ row.status }}</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<h2>Disk Logs</h2>
 
-        <div class="footer">
-            Dashboard powered by Flask, Bash scripts, and cron automation.
-        </div>
-    </div>
+<table>
+<tr>
+<th>Timestamp</th>
+<th>Disk Info</th>
+<th>Status</th>
+</tr>
+
+{% for r in disk_rows %}
+<tr>
+<td>{{r.timestamp}}</td>
+<td>{{r.message}}</td>
+<td class="{{r.class}}">{{r.status}}</td>
+</tr>
+{% endfor %}
+</table>
+
 </body>
 </html>
 """
 
 
 @app.route("/")
-def dashboard():
-    cards = parse_health_output()
-    disk_rows = parse_disk_logs()
+def home():
     return render_template_string(
-        HTML_TEMPLATE,
-        cards=cards,
-        disk_rows=disk_rows
+        HTML,
+        cards=parse_health_output(),
+        disk_rows=parse_disk_logs()
     )
 
 

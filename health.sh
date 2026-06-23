@@ -20,14 +20,14 @@ else
 	echo "Memory: CRITICAL ($mem%)"
 fi
 
-cpu=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+cpu=$(top -bn2 | awk -F',' '/Cpu\(s\)/ {idle=$4} END {print 100-idle}' | cut -d'.' -f1)
 cpu=${cpu%.*}
 if [ $cpu -lt 70 ]; then
-	echo "CPU: OK ($cpu%)"
+        echo "CPU: OK ($cpu%)"
 elif [ $cpu -ge 70 ] && [ $cpu -le 85 ]; then
-	echo "CPU: WARNING ($cpu%)"
+        echo "CPU: WARNING ($cpu%)"
 else
-	echo "CPU: CRITICAL ($cpu%)"
+        echo "CPU: CRITICAL ($cpu%)"
 fi
 
 service=$(systemctl is-active nginx)
