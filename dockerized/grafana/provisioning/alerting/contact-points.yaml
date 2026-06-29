@@ -1,0 +1,10 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: EmailAlert
+    receivers:
+      - uid: email_receiver
+        type: email
+        settings:
+          addresses: $ALERT_EMAIL_TO

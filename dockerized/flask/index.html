@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ABC health pharma dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        h2 {
+            margin-top: 30px;
+            color: #34495e;
+        }
+
+        /* CARD CONTAINER */
+        .card-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+	   justify-content: center;
+	   align-items: center;
+	  
+	  flex-wrap: nowrap;
+        }
+
+        /* EACH CARD */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 200px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+	.blue{
+		background-color: #d6eaff;
+}
+	.pink{
+		background-color: #ffe5ec;
+}
+	.yellow{
+		background-color: #fdfd96;
+}
+	.green{
+		background-color: #bfeeb7;
+}
+	.red{
+		background-color: #f09191;
+}	
+
+        .card h3 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .card p {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* ACTIVITY BOX */
+       .activity-box {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.table-container {
+    margin-top: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+th {
+    background-color: #f0f3fa;
+    text-align: left;
+    padding: 12px;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+td:nth-child(2) {
+    font-weight: bold;
+    color: #4a7cff;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+        /* BUTTON */
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4a7cff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #355fd6;
+        }
+
+    </style>
+</head> 
+<body>
+<h1>ABC health Pharma Dashboard</h1>
+<h2>Overview </h2>
+<div class ="card-container">
+<div class="card green">
+<h3>Weekly sales</h3>
+<p>3120</p>
+</div>
+<div class="card blue">
+<h3> Medicines </h3>
+<p> 50,160</p>
+</div>
+<div class="card pink">
+<h3>Orders</h3>
+<p>25,180</p>
+</div>
+<div class="card yellow">
+<h3>Revenue</h3>
+<p>108,237</p>
+</div>
+<div class="card red">
+<h3>Low stock</h3>
+<p>80</p>
+</div>
+</div>
+<h2>Recent Acitivity</h2
+<div class="table-container">
+    <table>
+        <tr>
+            <th>Topic</th>
+            <th>Status</th>
+            <th>Date</th>
+        </tr>
+
+        <tr>
+            <td>Order #1023</td>
+            <td>Complete</td>
+            <td>17 Jun 2026</td>
+        </tr>
+
+        <tr>
+            <td>Inventory Update</td>
+            <td>Done</td>
+            <td>16 Jun 2026</td>
+        </tr>
+
+        <tr>
+            <td>Shipment Arrival</td>
+            <td>Received</td>
+            <td>15 Jun 2026</td>
+        </tr>
+    </table>
+</div>
+<hr>
+
+<button>View full dashboard</button>
+
+<h5> 2026 ABC health pharma systems </h5>
+
+</body>
+</html>
